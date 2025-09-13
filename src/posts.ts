@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { postsTable } from "./db/schema.js"
 import { db } from "./db/db.js"
+import { eq } from "drizzle-orm"
 
 const app = new Hono()
 
@@ -14,7 +15,7 @@ app.get("/:id", async (c) => {
   const post = await db
     .select()
     .from(postsTable)
-    .where(postsTable.id.eq(Number(id)))
+    .where(eq(postsTable.id, Number(id)))
   return c.json(post)
 })
 
@@ -22,7 +23,7 @@ app.post("/", async (c) => {
   const newPost = await c.req.json()
   const inserted = await db.insert(postsTable).values(newPost).returning()
   return c.json(inserted)
-}
+})
 
 app.put("/:id", async (c) => {
   const { id } = c.req.param()
@@ -30,18 +31,18 @@ app.put("/:id", async (c) => {
   const updated = await db
     .update(postsTable)
     .set(updatedPost)
-    .where(postsTable.id.eq(Number(id)))
+    .where(eq(postsTable.id, Number(id)))
     .returning()
   return c.json(updated)
-}
+})
 
 app.delete("/:id", async (c) => {
   const { id } = c.req.param()
   const deleted = await db
     .delete(postsTable)
-    .where(postsTable.id.eq(Number(id)))
+    .where(eq(postsTable.id, Number(id)))
     .returning()
   return c.json(deleted)
-}
+})
 
 export default app

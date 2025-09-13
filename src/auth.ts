@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { db } from './db/db.js'
 import users from './users.js'
+import { eq } from 'drizzle-orm' // 引入 eq 函数
 
 const app = new Hono()
 
@@ -9,8 +10,8 @@ app.post('/login', async (c) => {
   const user = await db
     .select()
     .from(usersTable)
-    .where(usersTable.email.eq(email))
-    .where(usersTable.password.eq(password))
+    .where(eq(usersTable.email, email))
+    .where(eq(usersTable.password, password))
     .limit(1)
 
   if (user.length === 0) {

@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { tagsTable } from "./db/schema.js"
 import { db } from "./db/db.js"
+import { eq } from "drizzle-orm"
 
 const app = new Hono()
 
@@ -14,7 +15,7 @@ app.get("/:id", async (c) => {
   const tag = await db
     .select()
     .from(tagsTable)
-    .where(tagsTable.id.eq(Number(id)))
+    .where(eq(tagsTable.id, Number(id)))
   return c.json(tag)
 })
 
@@ -30,7 +31,7 @@ app.put("/:id", async (c) => {
   const updated = await db
     .update(tagsTable)
     .set(updatedTag)
-    .where(tagsTable.id.eq(Number(id)))
+    .where(eq(tagsTable.id, Number(id)))
     .returning()
   return c.json(updated)
 })
@@ -39,7 +40,7 @@ app.delete("/:id", async (c) => {
   const { id } = c.req.param()
   const deleted = await db
     .delete(tagsTable)
-    .where(tagsTable.id.eq(Number(id)))
+    .where(eq(tagsTable.id, Number(id)))
     .returning()
   return c.json(deleted)
 })
