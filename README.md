@@ -1,4 +1,8 @@
-To develop locally:
+## About
+
+A blog API built with hono.js and deployed on Vercel.
+
+## How to run
 
 1. [Vercel CLI](https://vercel.com/docs/cli) installed globally
 2. Create a new database in PostgreSQL.
@@ -7,24 +11,6 @@ To develop locally:
 
 ```
 npm install
-npx drizzle-kit migrate
-vc dev
-```
-
-```
-open http://localhost:3000
-```
-
-To build locally:
-
-```
-npm install
-vc build
-```
-
-To deploy:
-
-```
-npm install
-vc deploy
+npm run db:push
+npm run dev
 ```

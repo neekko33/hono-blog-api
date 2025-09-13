@@ -1,13 +1,22 @@
 {
   "name": "hono",
   "type": "module",
+  "scripts": {
+    "dev": "vc dev",
+    "build": "vc build",
+    "deploy": "vc deploy",
+    "db:push": "npx drizzle-kit push",
+    "db:seed": "npx tsx src/db/seed.ts"
+  },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
     "hono": "^4.9.7",
     "postgres": "^3.4.7"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.0.0",
     "@types/node": "^20.11.17",
     "drizzle-kit": "^0.31.4",
     "tsx": "^4.20.5",
