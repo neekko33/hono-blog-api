@@ -1,20 +1,26 @@
-import { integer, pgTable, varchar } from 'drizzle-orm/pg-core'
+import { integer, pgTable, varchar, timestamp } from 'drizzle-orm/pg-core'
 
 export const usersTable = pgTable('users', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 256 }).notNull(),
   email: varchar({ length: 256 }).notNull().unique(),
   avatar_url: varchar({ length: 512 }),
+  created_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
+  updated_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
 })
 
 export const categoriesTable = pgTable('categories', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 256 }).notNull().unique(),
+  created_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
+  updated_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
 })
 
 export const tagsTable = pgTable('tags', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 256 }).notNull().unique(),
+  created_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
+  updated_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
 })
 
 export const postsTable = pgTable('posts', {
@@ -27,6 +33,8 @@ export const postsTable = pgTable('posts', {
   category_id: integer()
     .notNull()
     .references(() => categoriesTable.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+  created_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
+  updated_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
 })
 
 // Join table for posts and tags (many-to-many)
@@ -37,4 +45,6 @@ export const postsTagsTable = pgTable('posts_tags', {
   tag_id: integer()
     .notNull()
     .references(() => tagsTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  created_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
+  updated_at: timestamp({ mode: 'date' }).defaultNow().notNull(),
 })
