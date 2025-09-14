@@ -5,10 +5,10 @@ export enum TokenType {
   REFRESH = 'refresh',
 }
 
-export const generateToken = async (userId: string, type: TokenType) => {
+export const generateToken = async (userId: number, type: TokenType) => {
   const secret = process.env.JWT_SECRET!
   const now = Math.floor(Date.now() / 1000)
-  const exp = now + (type === TokenType.ACCESS ? 60 * 60 : 60 * 60 * 24 * 30) // 1 hour for access, 30 days for refresh
+  const exp = now + (type === TokenType.ACCESS ? 15 * 60 : 60 * 60 * 24 * 30) // 15 minutes for access, 30 days for refresh
 
   const payload = {
     sub: userId,
@@ -27,7 +27,7 @@ export const verifyToken = async (token: string, expectedType: TokenType) => {
     if (payload.type !== expectedType) {
       throw new Error('Invalid token type')
     }
-    return payload as { sub: string; type: TokenType; iat: number; exp: number }
+    return payload as { sub: number; type: TokenType; iat: number; exp: number }
   } catch (error) {
     return null
   }

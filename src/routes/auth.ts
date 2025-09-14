@@ -1,13 +1,15 @@
 import { Hono } from 'hono'
 import { db } from '../db/db.js'
-import users from './users.js'
 import { eq } from 'drizzle-orm' 
 import { generateToken, verifyToken, TokenType } from '../helpers.js'
 import bcrypt from 'bcrypt'
-import { getCookie, setCookie } from 'hono/cookie'
-import path from 'path'
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { auth as authMiddleware } from '../middlewares/auth.js'
+import { usersTable } from '../db/schema.js'
 
 const app = new Hono()
+app.use('/logout/*', authMiddleware)
+app.use('/me/*', authMiddleware)
 
 app.post('/refresh', async (c) => {
   const refreshToken = getCookie(c, 'refresh_token')
@@ -21,7 +23,7 @@ app.post('/refresh', async (c) => {
       return c.json({ message: 'Invalid refresh token' }, 401)
     }
     const accessToken = await generateToken(payload.sub, TokenType.ACCESS)
-    return c.json({ access_token: accessToken, token_type: 'Bearer', expires_in: 3600 })
+    return c.json({ access_token: accessToken, token_type: 'Bearer', expires_in: 900 })
   } catch (e) {
     return c.json({ message: 'Invalid or expired refresh token' }, 401)
   }
@@ -53,7 +55,7 @@ app.post('/login', async (c) => {
   return c.json({ 
     access_token: accessToken,
     token_type: 'Bearer',
-    expires_in: 3600, // 1 hour
+    expires_in: 900, // 15 minutes
    })
 })
 
@@ -61,3 +63,15 @@ app.post('/logout', (c) => {
   deleteCookie(c, 'refresh_token', { path: '/auth/refresh' })
   return c.json({ message: 'Logout successful' })
 })
+
+app.get('/me', async (c) => {
+  const userId = c.get('user').sub
+  const user = await db.select().from(usersTable).where(eq(usersTable.id, Number(userId))).limit(1)
+  if (!user || user.length === 0) {
+    return c.json({ message: 'User not found' }, 404)
+  }
+  const { password, ...userData } = user[0]
+  return c.json(userData)
+})
+
+export default app
