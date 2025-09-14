@@ -1,6 +1,6 @@
 import { Hono } from "hono"
-import { categoriesTable } from "./db/schema.js"
-import { db } from "./db/db.js"
+import { categoriesTable } from "../db/schema.js"
+import { db } from "../db/db.js"
 import { eq } from "drizzle-orm"
 
 const app = new Hono()
