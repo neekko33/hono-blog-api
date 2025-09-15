@@ -1,9 +1,11 @@
 import { Hono } from 'hono'
 import { db } from '../db/db.js'
 import { categoriesTable, postsTagsTable, usersTable } from '../db/schema.js'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq, SQL } from 'drizzle-orm'
 import { tagsTable } from '../db/schema.js'
 import { postsTable } from '../db/schema.js'
+import { title } from 'process'
+import { create } from 'domain'
 
 const app = new Hono()
 
@@ -66,21 +68,25 @@ app.get('/archives', async c => {
     })
   )
 
-  const grouped = postsWithTags.reduce((acc, post) => {
-    const year = new Date(post.created_at).getFullYear()
-    if (!acc[year]) {
-      acc[year] = [post] // 初始化为数组
-    } else {
-      acc[year].push(post) // 添加到数组
-    }
-    return acc // 返回累积值
-  }, {} as Record<number, (typeof posts)[0][]>)
+  const grouped = postsWithTags.reduce<Record<number, typeof postsWithTags>>(
+    (acc, post) => {
+      const year = new Date(post.created_at).getFullYear()
+      if (!acc[year]) acc[year] = []
+      acc[year].push(post)
+      return acc
+    },
+    {}
+  )
 
-  return c.json(grouped)
+  const sortedYears = Object.keys(grouped)
+    .map(Number)
+    .sort((a, b) => b - a)
+
+  return c.json(sortedYears.map(year => ({ year, posts: grouped[year] })))
 })
 
 app.get('/posts', async c => {
-  const { page = '1', pageSize = '10' } = c.req.query()
+  const { page = '1', pageSize = '10', category, tag } = c.req.query()
   const pageNum = parseInt(page)
   const sizeNum = parseInt(pageSize)
 
@@ -88,28 +94,48 @@ app.get('/posts', async c => {
     return c.json({ message: 'Invalid page or pageSize' }, 400)
   }
 
-  const posts = await db
-    .select()
-    .from(postsTable)
-    .limit(sizeNum)
-    .offset((pageNum - 1) * sizeNum)
-    .orderBy(desc(postsTable.created_at))
+  let total = await db.$count(postsTable, category ? eq(postsTable.category_id, Number(category)) : undefined)
 
-  const postsWithTags = await Promise.all(
-    posts.map(async post => {
-      const tags = await db
-        .select()
-        .from(postsTagsTable)
-        .where(eq(postsTagsTable.post_id, post.id))
-        .leftJoin(tagsTable, eq(tagsTable.id, postsTagsTable.tag_id))
-      return {
-        ...post,
-        tags: tags.map(t => t.tags),
-      }
-    })
-  )
+  if (tag) {
+    total = await db.$count(postsTagsTable, eq(postsTagsTable.tag_id, Number(tag)))
+  }
 
-  return c.json(postsWithTags)
+  const posts = await db.query.postsTable.findMany({
+    where: tag
+      ? (postsTable, { exists, and }) =>
+          exists(
+            db
+              .select()
+              .from(postsTagsTable)
+              .where(
+                and(
+                  eq(postsTagsTable.post_id, postsTable.id),
+                  eq(postsTagsTable.tag_id, Number(tag))
+                )
+              )
+          )
+      : undefined,
+    with: {
+      postsTags: {
+        with: {
+          tag: true,
+        },
+      },
+    },
+    where: category
+      ? eq(postsTable.category_id, Number(category))
+      : undefined,
+    orderBy: [desc(postsTable.created_at)],
+    limit: sizeNum,
+    offset: (pageNum - 1) * sizeNum,
+  })
+
+  return c.json({
+    total: total,
+    page: pageNum,
+    pageSize: sizeNum,
+    data: posts,
+  })
 })
 
 app.get('/posts/:id', async c => {
@@ -118,7 +144,7 @@ app.get('/posts/:id', async c => {
     .select()
     .from(postsTable)
     .where(eq(postsTable.id, Number(id)))
-  return c.json(post)
+  return c.json(post[0])
 })
 
 export default app
