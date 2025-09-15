@@ -30,6 +30,7 @@ const createUser = async (overrides = {}) => {
   const user = {
     name: faker.person.fullName(),
     email: faker.internet.email(),
+    bio: faker.person.bio(),
     password: await bcrypt.hash('password', 2), // default password
     ...overrides,
   }
@@ -69,7 +70,8 @@ const createPost = async (overrides = {}) => {
 
   const post = {
     title: faker.lorem.sentence(),
-    content: faker.lorem.paragraphs(3),
+    description: faker.lorem.sentences(5),
+    content: faker.lorem.paragraphs(5),
     author_id: user.id,
     category_id: categories.length
       ? faker.helpers.arrayElement(categories).id

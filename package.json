@@ -6,7 +6,8 @@
     "build": "vc build",
     "deploy": "vc deploy",
     "db:push": "npx drizzle-kit push",
-    "db:seed": "npx tsx src/db/seed.ts"
+    "db:seed": "npx tsx src/db/seed.ts",
+    "db:refresh": "npx tsx src/db/refresh.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

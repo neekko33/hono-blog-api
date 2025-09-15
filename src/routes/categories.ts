@@ -5,6 +5,20 @@ import { eq } from 'drizzle-orm'
 
 const app = new Hono()
 
+app.get("/", async (c) => {
+  const categories = await db.select().from(categoriesTable)
+  return c.json(categories)
+})
+
+app.get("/:id", async (c) => {
+  const { id } = c.req.param()
+  const category = await db
+    .select()
+    .from(categoriesTable)
+    .where(eq(categoriesTable.id, Number(id)))
+  return c.json(category)
+})
+
 app.post('/', async c => {
   const newCategory = await c.req.json()
   const inserted = await db
