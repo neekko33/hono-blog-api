@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { db } from '../db/db.js'
 import { categoriesTable, postsTagsTable, usersTable } from '../db/schema.js'
-import { and, desc, eq, SQL } from 'drizzle-orm'
+import { and, desc, eq, SQL, exists } from 'drizzle-orm'
 import { tagsTable } from '../db/schema.js'
 import { postsTable } from '../db/schema.js'
 import { title } from 'process'
@@ -16,21 +16,23 @@ app.get('/home', async c => {
   }
 
   const postsCount = await db.$count(postsTable)
-
-  const categories = await db.select().from(categoriesTable)
   const tags = await db.select().from(tagsTable)
 
-  const categoryResult = await Promise.all(
-    categories.map(async category => {
-      return {
-        ...category,
-        postsCount: await db.$count(
-          postsTable,
-          eq(postsTable.category_id, category.id)
-        ),
-      }
-    })
-  )
+  const categories = await db.query.categoriesTable.findMany({
+    with: {
+      posts: {
+        columns: {
+          id: true,
+        },
+      },
+    }
+  })
+
+  const categoryResult = categories.map(category => ({
+    id: category.id,
+    name: category.name,
+    postsCount: category.posts.length,
+  }))
 
   const result = {
     profile: {
@@ -94,16 +96,11 @@ app.get('/posts', async c => {
     return c.json({ message: 'Invalid page or pageSize' }, 400)
   }
 
-  let total = await db.$count(postsTable, category ? eq(postsTable.category_id, Number(category)) : undefined)
-
-  if (tag) {
-    total = await db.$count(postsTagsTable, eq(postsTagsTable.tag_id, Number(tag)))
-  }
-
-  const posts = await db.query.postsTable.findMany({
-    where: tag
-      ? (postsTable, { exists, and }) =>
-          exists(
+  const total = await db.$count(
+    postsTable,
+    and(
+      tag
+        ? exists(
             db
               .select()
               .from(postsTagsTable)
@@ -114,7 +111,29 @@ app.get('/posts', async c => {
                 )
               )
           )
-      : undefined,
+        : undefined,
+      category ? eq(postsTable.category_id, Number(category)) : undefined
+    )
+  )
+
+  const posts = await db.query.postsTable.findMany({
+    where: (postsTable, { exists, and, eq }) =>
+      and(
+        tag
+          ? exists(
+              db
+                .select()
+                .from(postsTagsTable)
+                .where(
+                  and(
+                    eq(postsTagsTable.post_id, postsTable.id),
+                    eq(postsTagsTable.tag_id, Number(tag))
+                  )
+                )
+            )
+          : undefined,
+        category ? eq(postsTable.category_id, Number(category)) : undefined
+      ),
     with: {
       postsTags: {
         with: {
@@ -122,19 +141,24 @@ app.get('/posts', async c => {
         },
       },
     },
-    where: category
-      ? eq(postsTable.category_id, Number(category))
-      : undefined,
     orderBy: [desc(postsTable.created_at)],
     limit: sizeNum,
     offset: (pageNum - 1) * sizeNum,
   })
 
+  const postsFormatted = posts.map(post => ({
+    id: post.id,
+    title: post.title,
+    description: post.description,
+    created_at: post.created_at,
+    tags: post.postsTags.map(pt => pt.tag),
+  }))
+
   return c.json({
     total: total,
     page: pageNum,
     pageSize: sizeNum,
-    data: posts,
+    data: postsFormatted,
   })
 })
 

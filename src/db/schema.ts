@@ -14,7 +14,7 @@ export const usersTable = pgTable('users', {
 })
 
 export const usersRelations = relations(usersTable, ({ many }) => ({
-  posts: many('posts'),
+  posts: many(postsTable),
 }))
 
 export const categoriesTable = pgTable('categories', {
@@ -25,7 +25,7 @@ export const categoriesTable = pgTable('categories', {
 })
 
 export const categoriesRelations = relations(categoriesTable, ({ many }) => ({
-  posts: many('posts'),
+  posts: many(postsTable),
 }))
 
 export const tagsTable = pgTable('tags', {
@@ -36,7 +36,7 @@ export const tagsTable = pgTable('tags', {
 })
 
 export const tagsRelations = relations(tagsTable, ({ many }) => ({
-  postsTags: many('posts_tags'),
+  postsTags: many(postsTagsTable),
 }))
 
 export const postsTable = pgTable('posts', {
